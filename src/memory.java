@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -51,10 +52,23 @@ public class memory {
         return SegmentToBase;
     }
 
+    public static ArrayList<Integer> VirtualMemoToPhysical(HashMap<Integer,Integer> segmentToBase) throws FileNotFoundException {
+        ArrayList<Integer> VirtToPhys = new ArrayList<>();
+        Scanner sc = new Scanner(new File("C:\\Users\\saryn\\Desktop\\GIU2\\Third\\Operating systems\\milestone3\\memory\\src\\VIRTUALMEMORY.txt"));
+        while(sc.hasNextLine()){
+            String Virtual = sc.nextLine();
+            int segment = (Virtual.charAt(2) - '0');
+            int offset = Integer.parseInt(Virtual.substring(3,Virtual.length()));
+            int PhysicalAddress = segmentToBase.get(segment) + offset;
+            VirtToPhys.add(PhysicalAddress);
+        }
+        return VirtToPhys;
+    }
 
     public static String Execute() throws FileNotFoundException {
         HashMap<Integer,String> addressToData = GetMemory();
         HashMap<Integer,Integer> segmentToBase = GetSegmentToBase();
+        ArrayList<Integer> Instructions =  VirtualMemoToPhysical(segmentToBase);
 
         return "";
     }
