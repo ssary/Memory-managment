@@ -22,25 +22,44 @@ public class memory {
         return fileContent.toString();
     }
 
-    public static HashMap<Long,String> GetMemory() throws FileNotFoundException {
-        HashMap<Long, String> addressToData = new HashMap<>();
+    public static HashMap<Integer,String> GetMemory() throws FileNotFoundException {
+        HashMap<Integer, String> addressToData = new HashMap<>();
 
-        Scanner MemoryFileScanner = new Scanner(new File("MEMORYFILE.txt"));
+        Scanner MemoryFileScanner = new Scanner(new File("C:\\Users\\saryn\\Desktop\\GIU2\\Third\\Operating systems\\milestone3\\memory\\src\\MEMORYFILE.txt"));
         while (MemoryFileScanner.hasNextLine()) {
             String PhysicalAddressToData = MemoryFileScanner.nextLine();
             String[] AddressToDataSplitted = PhysicalAddressToData.split(" ", 2);
-            addressToData.put(Long.parseLong(AddressToDataSplitted[0]), AddressToDataSplitted[1]);
+            addressToData.put(Integer.parseInt(AddressToDataSplitted[0]), AddressToDataSplitted[1]);
         }
         return addressToData;
     }
 
 
-    public static String Execute() throws FileNotFoundException {
-        HashMap<Long,String> addressToData = GetMemory();
-
+    public static HashMap<Integer,Integer> GetSegmentToBase() throws FileNotFoundException {
+        HashMap<Integer,Integer> SegmentToBase = new HashMap<>();
+        Scanner sc = new Scanner(new File("C:\\Users\\saryn\\Desktop\\GIU2\\Third\\Operating systems\\milestone3\\memory\\src\\INFOFILE.txt"));
+        while (sc.hasNextLine()) {
+            String line = sc.nextLine();
+            String[] segmentToBaseSplit = line.split(" ");
+            if(segmentToBaseSplit.length != 2){
+                int segmentNumber = Integer.parseInt(segmentToBaseSplit[1]);
+                int baseOfSegment = Integer.parseInt(segmentToBaseSplit[3]);
+                System.out.println(segmentNumber+ " " + baseOfSegment);
+                SegmentToBase.put(segmentNumber,baseOfSegment);
+            }
+        }
+        return SegmentToBase;
     }
 
-    public static void main(String[] args) {
 
+    public static String Execute() throws FileNotFoundException {
+        HashMap<Integer,String> addressToData = GetMemory();
+        HashMap<Integer,Integer> segmentToBase = GetSegmentToBase();
+
+        return "";
+    }
+
+    public static void main(String[] args) throws FileNotFoundException {
+        Execute();
     }
 }
