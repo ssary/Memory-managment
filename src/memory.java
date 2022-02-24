@@ -7,23 +7,9 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class memory {
-    public static String MEMORY_FILE_PATH = "C:\\Users\\saryn\\Desktop\\GIU2\\Third\\Operating systems\\milestone3\\memory\\src\\MEMORYFILE.txt";
-    public static String readFile(String Path) {
-        StringBuilder fileContent = new StringBuilder();
-        try {
+    public static String filePath = new File("").getAbsolutePath();
+    public static String MEMORY_FILE_PATH = filePath.concat("\\src\\MEMORYFILE.txt");
 
-            File file = new File(Path);
-            Scanner filereader = new Scanner(file);
-            while (filereader.hasNextLine()) {
-                fileContent.append(filereader.nextLine()).append('\n');
-            }
-            filereader.close();
-        } catch (FileNotFoundException e) {
-            System.out.println("Not found");
-            e.printStackTrace();
-        }
-        return fileContent.toString();
-    }
 
     public static HashMap<Integer,String> GetMemory() throws FileNotFoundException {
         HashMap<Integer, String> addressToData = new HashMap<>();
@@ -40,14 +26,13 @@ public class memory {
 
     public static HashMap<Integer,Integer> GetSegmentToBase() throws FileNotFoundException {
         HashMap<Integer,Integer> SegmentToBase = new HashMap<>();
-        Scanner sc = new Scanner(new File("C:\\Users\\saryn\\Desktop\\GIU2\\Third\\Operating systems\\milestone3\\memory\\src\\INFOFILE.txt"));
+        Scanner sc = new Scanner(new File(filePath.concat("\\src\\INFOFILE.txt")));
         while (sc.hasNextLine()) {
             String line = sc.nextLine();
             String[] segmentToBaseSplit = line.split(" ");
             if(segmentToBaseSplit.length != 2){
                 int segmentNumber = Integer.parseInt(segmentToBaseSplit[1]);
                 int baseOfSegment = Integer.parseInt(segmentToBaseSplit[3]);
-                System.out.println(segmentNumber+ " " + baseOfSegment);
                 SegmentToBase.put(segmentNumber,baseOfSegment);
             }
         }
@@ -56,7 +41,7 @@ public class memory {
 
     public static ArrayList<Integer> VirtualMemoToPhysical(HashMap<Integer,Integer> segmentToBase) throws FileNotFoundException {
         ArrayList<Integer> VirtToPhys = new ArrayList<>();
-        Scanner sc = new Scanner(new File("C:\\Users\\saryn\\Desktop\\GIU2\\Third\\Operating systems\\milestone3\\memory\\src\\VIRTUALMEMORY.txt"));
+        Scanner sc = new Scanner(new File(filePath.concat("\\src\\VIRTUALMEMORY.txt")));
         while(sc.hasNextLine()){
             String Virtual = sc.nextLine();
             int segment = (Virtual.charAt(2) - '0');
@@ -67,14 +52,16 @@ public class memory {
         return VirtToPhys;
     }
 
-
-//    public static Integer VariablesVirtualToPhysical(HashMap<Integer,Integer> segmentToBase,String Virtual) {
-//            int segment = (Virtual.charAt(1) - '0');
-//            int offset = Integer.parseInt(Virtual.substring(2));
-//            System.out.println("virt "+Virtual);
-//            System.out.println("phys "+ (segmentToBase.get(segment)+offset));
-//            return segmentToBase.get(segment) + offset;
-//    }
+    public static ArrayList<String> VirtualAddresses() throws FileNotFoundException {
+        ArrayList<String> VirtualAddress = new ArrayList<>();
+        Scanner sc = new Scanner(new File(filePath.concat("\\src\\VIRTUALMEMORY.txt")));
+        while(sc.hasNextLine()){
+            String Virtual = sc.nextLine();
+            Virtual = Virtual.substring(2);
+            VirtualAddress.add(Virtual);
+        }
+        return VirtualAddress;
+    }
 
     // pass the physical address of the variable to be changed and the value you want to put.
     // just add the lines to a list, change in the list directly by accessing the line number,
@@ -95,57 +82,67 @@ public class memory {
         return "RESULT " + value + " STORED AT LOCATION " + destinationPhysical;
     }
 
-
-//    public static String movDesSrc(Integer destinationPhysical,
-//                                   Integer srcPhysical,
-//                                   HashMap<Integer,String> addressToData) throws IOException {
-//
-//        String ValueInsideSrc = addressToData.get(srcPhysical);
-//        addressToData.put(destinationPhysical,ValueInsideSrc);
-//        modifyMemory(destinationPhysical,Integer.parseInt(ValueInsideSrc));
-//
-//        return "RESULT " + ValueInsideSrc + " STORED AT LOCATION " + destinationPhysical;
-//    }
-
-    public static String Execute() throws IOException {
+    public static void Execute() throws IOException {
         HashMap<Integer,String> addressToData = GetMemory();
         HashMap<Integer,Integer> segmentToBase = GetSegmentToBase();
         ArrayList<Integer> InstructionsPhysicalAddress =  VirtualMemoToPhysical(segmentToBase);
+        List<String> outputList = new ArrayList<>();
+        ArrayList<String> VirtualAdresses = VirtualAddresses();
 
-        for (int i=0;i < InstructionsPhysicalAddress.size();i ++){
+        for (int i=0;i < InstructionsPhysicalAddress.size();i ++) {
             int InsPhysAdd = InstructionsPhysicalAddress.get(i);
-            String ans;
-            String[] instructionAndAddress = addressToData.get(InsPhysAdd).replaceAll(",","").split(" ");
+            String ans = "FETCH VIRTUAL MEMORY " + VirtualAdresses.get(i) + " -> PHYSICAL MEMORY " + InsPhysAdd + '\n';
+            ans += "EXECUTE " + addressToData.get(InsPhysAdd) + '\n';
+
+            String[] instructionAndAddress = addressToData.get(InsPhysAdd).replaceAll(",", "").split(" ");
             System.out.println(Arrays.toString(addressToData.get(InsPhysAdd).replaceAll(",", "").split(" ")));
             String Instruction = instructionAndAddress[0];
-            Integer destinationPhysical =Integer.parseInt(instructionAndAddress[1].substring(1));
+            Integer destinationPhysical = Integer.parseInt(instructionAndAddress[1].substring(1));
             // check the instruction
 
-            if(Instruction.equals("mov")){
+            switch (Instruction) {
+                case "mov":
 
-                // move Value to specific Place in the memory (mov %des val)
-                if(!instructionAndAddress[2].contains("%")){
+                    // move Value to specific Place in the memory (mov %des val)
+                    if (!instructionAndAddress[2].contains("%")) {
+                        Integer value = Integer.parseInt(instructionAndAddress[2]);
+                        ans += ChangeValueInMemory(destinationPhysical, value, addressToData);
+                    }
+                    // move value in variable to another variable (mov %dest %source)
+                    else {
+                        Integer srcPhysical = Integer.parseInt(instructionAndAddress[2].substring(1));
+                        Integer value = Integer.parseInt(addressToData.get(srcPhysical));
+                        ans += ChangeValueInMemory(destinationPhysical, value, addressToData);
+                    }
+                    break;
+                case "add": {
+                    Integer initValue = Integer.parseInt(addressToData.get(destinationPhysical));
                     Integer value = Integer.parseInt(instructionAndAddress[2]);
-                    //System.out.println( "phys add , old data, new val"+ destinationPhysical + " " + addressToData.get(destinationPhysical)+  " " + instructionAndAddress[2]  );
-                    ans = ChangeValueInMemory(destinationPhysical,value,addressToData);
+                    System.out.println(initValue + " " + value);
+                    ans += ChangeValueInMemory(destinationPhysical, initValue + value, addressToData);
+                    break;
                 }
-                // move value in variable to another variable (mov %dest %source)
-                else{
-                    Integer srcPhysical = Integer.parseInt(instructionAndAddress[2].substring(1) );
-                    Integer value = Integer.parseInt(addressToData.get(srcPhysical));
-                    //System.out.println( "phys add , old data, new data"+ destinationPhysical + " " + addressToData.get(destinationPhysical)+  " " + addressToData.get(srcPhysical));
-                    ans = ChangeValueInMemory(destinationPhysical,value,addressToData);
+                case "sub": {
+                    Integer initValue = Integer.parseInt(addressToData.get(destinationPhysical));
+                    Integer value = Integer.parseInt(instructionAndAddress[2]);
+                    ans += ChangeValueInMemory(destinationPhysical, initValue - value, addressToData);
+                    break;
+                }
+                case "inc": {
+                    int initValue = Integer.parseInt(addressToData.get(destinationPhysical));
+                    ans += ChangeValueInMemory(destinationPhysical, initValue + 1, addressToData);
+                    break;
+                }
+                case "dec": {
+                    int initValue = Integer.parseInt(addressToData.get(destinationPhysical));
+                    ans += ChangeValueInMemory(destinationPhysical, initValue - 1, addressToData);
+                    break;
                 }
             }
-
-            else if(Instruction.equals("add")){
-                Integer initValue = Integer.parseInt(addressToData.get(destinationPhysical));
-                Integer value = Integer.parseInt(instructionAndAddress[2]);
-                ans = ChangeValueInMemory(destinationPhysical,initValue+value,addressToData);
-            }
-
+            outputList.add(ans);
+            Files.write(Path.of(filePath.concat("\\src\\OUTPUT.txt")),
+                    outputList,StandardCharsets.UTF_8);
         }
-        return "";
     }
 
     public static void main(String[] args) throws IOException {
